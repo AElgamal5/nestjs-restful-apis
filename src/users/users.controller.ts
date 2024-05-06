@@ -7,57 +7,63 @@ import {
   Patch,
   Post,
   Query,
-  ParseIntPipe,
   ValidationPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dtos/create-user.dto';
-import { UpdateUserDto } from './dtos/update-user.dto';
+import { Prisma, Role } from '@prisma/client';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly userService: UsersService) {}
 
   @Get()
-  getAll(@Query('role') role?: 'GEST' | 'USER' | 'ADMIN') {
+  async getAll(@Query('role') role?: Role) {
+    const users = await this.userService.findAll(role);
+    const mapped = users.map((user) => {
+      return { ...user, id: user.id.toString() };
+    });
     return {
-      msg: 'get all users',
-      users: this.userService.findAll(role),
+      msg: 'Getting all users successfully👍',
+      users: mapped,
     };
   }
 
   @Get('/:id')
-  getById(@Param('id', ParseIntPipe) id: number) {
+  async getById(@Param('id') id: string) {
+    const user = await this.userService.findOne(id);
     return {
-      msg: 'get user by id: ' + id,
-      user: this.userService.findOne(id),
+      msg: 'Getting user successfully👍',
+      user: user ? { ...user, id: user.id.toString() } : null,
     };
   }
 
   @Post()
-  create(@Body(ValidationPipe) createUserDto: CreateUserDto) {
+  async create(@Body(ValidationPipe) createUserDto: Prisma.UserCreateInput) {
+    const user = await this.userService.create(createUserDto);
     return {
       msg: 'User created successfully👍',
-      user: this.userService.store(createUserDto),
+      user: user ? { ...user, id: user.id.toString() } : null,
     };
   }
 
   @Patch('/:id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body(ValidationPipe) updateUserDto: UpdateUserDto,
+  async update(
+    @Param('id') id: string,
+    @Body(ValidationPipe) updateUserDto: Prisma.UserUpdateInput,
   ) {
+    const user = await this.userService.update(id, updateUserDto);
     return {
       msg: 'User updated successfully👍',
-      user: this.userService.update(id, updateUserDto),
+      user: user ? { ...user, id: user.id.toString() } : null,
     };
   }
 
   @Delete('/:id')
-  delete(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id') id: string) {
+    const user = await this.userService.remove(id);
     return {
       msg: 'User deleted successfully👍',
-      user: this.userService.delete(id),
+      user: user ? { ...user, id: user.id.toString() } : null,
     };
   }
 }
